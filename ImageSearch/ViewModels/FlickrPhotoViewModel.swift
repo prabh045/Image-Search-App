@@ -21,10 +21,10 @@ class FlickrPhotoViewModel {
     var isInitialDataLoaded: Bool = false
     var currentPage = 1
     var imageUrlArray: [URL?] = []
-    var searchText = "cats"
+    var searchText = "dogs"
     
     //MARK: Methods
-    func search(text: String = "cats") {
+    func search(text: String = "dogs") {
         
         if searchText != text {
             searchText = text
