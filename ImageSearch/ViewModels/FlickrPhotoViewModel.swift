@@ -32,7 +32,7 @@ class FlickrPhotoViewModel {
         }
         
         FlickrAPI.shared.fetchData(for: searchText, atPage: currentPage) { (flickrphoto, error) in
-            if let error = error, flickrphoto != nil {
+            if let error = error, flickrphoto == nil {
                 print("Error fetching data \(error.localizedDescription)")
                 return
             }
@@ -79,7 +79,7 @@ class FlickrPhotoViewModel {
         pendingOperations.downloadsInProgress[indexPath] = imageDownloader
         pendingOperations.downloadsQueue.addOperation(imageDownloader)
     }
-    
+        
     func decreasePriorityForOperation(at indexPath: IndexPath) {
         guard let operation = pendingOperations.downloadsInProgress[indexPath] else {
             print("Operation is not present")

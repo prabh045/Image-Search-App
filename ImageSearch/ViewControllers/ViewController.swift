@@ -35,20 +35,20 @@ class ViewController: UIViewController {
     }()
     
     var flickrViewModel = FlickrPhotoViewModel()
+    let presentAnimator = Animator()
+    let dismissAnimator = DismissAnimator()
+    var selectedCellFrame = CGRect.zero
     
     //MARK: Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
+        self.navigationController?.delegate = self
         setupSearchBar()
         setupCollectionView()
         setupConstraints()
         setupViewModel()
     }
-    
-    override func viewWillAppear(_ animated: Bool) {
-        //searchBar.becomeFirstResponder()
-    }
-    
+        
     //MARK: SetUp
     func setupSearchBar() {
         searchBar.placeholder = "Search Photos"
@@ -63,6 +63,7 @@ class ViewController: UIViewController {
         imageCollectionView.delegate = self
         imageCollectionView.backgroundColor = .white
         imageCollectionView.register(ImageCollectionViewCell.self, forCellWithReuseIdentifier: ImageCollectionViewCell.identifier)
+        imageCollectionView.register(IndicatorReusableView.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionFooter, withReuseIdentifier: IndicatorReusableView.identifier)
         self.view.addSubview(imageCollectionView)
     }
     
@@ -81,24 +82,6 @@ class ViewController: UIViewController {
                  self?.imageCollectionView.reloadData()
             }
         }
-//        flickrViewModel.photoState.bind { [weak self] (state) in
-//            DispatchQueue.main.async {
-//                if state == .downloaded {
-//                    self?.imageCollectionView.reloadData()
-//                }
-//            }
-//        }
-//        flickrViewModel.photoDetails.bind { (photoDetails) in
-//            let _ = photoDetails.enumerated().map { (index,photoDetail) in
-//                photoDetail.state.bind { [weak self] (_) in
-//                    let indexPath = IndexPath(item: index, section: 0)
-//                    DispatchQueue.main.async {
-//                        print("Reloading.......")
-//                        self?.imageCollectionView.reloadData()
-//                    }
-//                }
-//            }
-//        }
         flickrViewModel.search()
     }
     
@@ -174,12 +157,34 @@ extension ViewController: UICollectionViewDelegate, UICollectionViewDelegateFlow
         
     }
     
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForFooterInSection section: Int) -> CGSize {
+        return CGSize(width: 40.0, height: 40.0)
+    }
+    
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAt section: Int) -> UIEdgeInsets {
         return sectionInsets
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
         return sectionInsets.left
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
+        var reusableView: UICollectionReusableView? = nil
+        if kind == UICollectionView.elementKindSectionFooter {
+            let footerView = collectionView.dequeueReusableSupplementaryView(ofKind: UICollectionView.elementKindSectionFooter, withReuseIdentifier: IndicatorReusableView.identifier, for: indexPath) as! IndicatorReusableView
+            footerView.frame = CGRect(x: view.frame.width/2, y: 0, width: 25, height: 25)
+            reusableView = footerView
+            print("Returning footer")
+        }
+        return reusableView!
+    }
+        
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        selectedCellFrame = collectionView.convert(collectionView.layoutAttributesForItem(at: indexPath)!.frame, to: self.view)
+        let vc = ImageViewController()
+        vc.photoDetails = flickrViewModel.photoDetails.value[indexPath.row]
+        navigationController?.pushViewController(vc, animated: true)
     }
     
     func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
@@ -199,6 +204,27 @@ extension ViewController: UICollectionViewDelegate, UICollectionViewDelegateFlow
         flickrViewModel.decreasePriorityForOperation(at: indexPath)
     }
     
+
+}
+
+//MARK: TransitionDelegate
+extension ViewController: UINavigationControllerDelegate {
+    
+    func navigationController(_ navigationController: UINavigationController, animationControllerFor operation: UINavigationController.Operation, from fromVC: UIViewController, to toVC: UIViewController) -> UIViewControllerAnimatedTransitioning? {
+        
+        switch operation {
+        case .push:
+            presentAnimator.originFrame = selectedCellFrame
+            print("Frame is",selectedCellFrame)
+            return presentAnimator
+        case .pop:
+            dismissAnimator.originFrame = selectedCellFrame
+            return dismissAnimator
+        default:
+            return nil
+        }
+        
+    }
 
 }
 
